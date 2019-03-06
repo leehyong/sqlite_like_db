@@ -1,0 +1,1 @@
+This is a simple Sqlite-like implementation in Rust following [Let's Build a Simple Database](https://cstack.github.io/db_tutorial/)
