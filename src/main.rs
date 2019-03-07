@@ -12,9 +12,9 @@ struct InputBuffer{
 const EXIT_CODE:i8 = -1;
 const META_CODE:i8 = 0;
 
-const PAGE_SIZE:usize = 4096;
+const PAGE_SIZE:usize = 1024;
 const ROW_SIZE:usize = size_of::<Row>();
-const TABLE_MAX_PAGES:usize = 100;
+const TABLE_MAX_PAGES:usize = 5;
 const ROWS_PER_PAGE:usize = PAGE_SIZE / ROW_SIZE;
 const TABLE_MAX_ROWS:usize = TABLE_MAX_PAGES * ROWS_PER_PAGE;
 
@@ -50,7 +50,7 @@ impl Table{
     }
 
     fn is_full(&self) -> bool{
-        self.pages.len() == self.pages.capacity()
+        self.num_rows == TABLE_MAX_ROWS
     }
     fn row_slot(&self, row_num:usize) -> usize{
         row_num / ROWS_PER_PAGE
@@ -63,6 +63,7 @@ impl Table{
                 self.pages.push(Page::new());
             }
             self.pages.get_mut(page).unwrap().rows.push(row.clone());
+            self.num_rows += 1;
             return ExecuteResult::EXECUTE_SUCCESS
         }
         ExecuteResult::EXECUTE_TABLE_FULL
@@ -119,7 +120,13 @@ impl InputBuffer{
 
     fn do_meta_command(&self) -> MetaCommandResult{
         let ss = self.buffer.split_whitespace().into_iter().take(1).next().unwrap();
-        if ss == ".tables" || ss == ".xxxxx" || ss == ".exit"{
+        if ss == ".tables"
+            || ss == ".xxxxx"
+            || ss == ".exit"
+            || ss == ".q"
+            || ss == ".e"
+            || ss == ".quit"
+        {
             return MetaCommandResult::META_COMMAND_SUCCESS
         }
         MetaCommandResult::META_COMMAND_UNRECOGNIZED_COMMAND
@@ -252,7 +259,7 @@ enum PrepareResult{
 }
 
 fn print_prompt(){
-    stdout().write("db -> ".as_bytes()).unwrap();
+    stdout().write("db > ".as_bytes()).unwrap();
     stdout().flush().unwrap();
 }
 
@@ -260,6 +267,7 @@ fn main() {
     let mut buf = InputBuffer::new();
     use PrepareResult::*;
     let mut table = Table::new();
+//    println!("{}, {}, {}", TABLE_MAX_ROWS, ROWS_PER_PAGE, ROW_SIZE);
     loop{
         print_prompt();
         buf.read_input();
